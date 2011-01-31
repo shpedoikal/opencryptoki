@@ -26,7 +26,7 @@ installcheck-local: all
 	@sbindir@/pkcs11_startup
 	@sbindir@/pkcsslotd
 	if test ! -z ${PKCS11_TEST_USER}; then \
-		su ${PKCS11_TEST_USER} -c "PKCS11_SO_PIN=76543210 PKCS11_USER_PIN=01234567 PKCSLIB=@libdir@/opencryptoki/libopencryptoki.so sh ./ock_tests.sh"; \
+		su ${PKCS11_TEST_USER} -c "PKCS11_SO_PIN=76543210 PKCS11_USER_PIN=01234567 PKCSLIB=@libdir@/opencryptoki/libopencryptoki.so bash ./ock_tests.sh"; \
 	else \
 		PKCS11_SO_PIN=76543210 PKCS11_USER_PIN=01234567 PKCSLIB=@libdir@/opencryptoki/libopencryptoki.so sh ./ock_tests.sh; \
 	fi

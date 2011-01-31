@@ -534,6 +534,67 @@ do_SignVerTests(CK_SESSION_HANDLE session)
 
 	return rv;
 }
+CK_RV
+kent(CK_SESSION_HANDLE session)
+{
+	CK_ULONG exp_size = 0, mod_size = 0, id = 2, objcount = 20, class, pub_exp=0;
+	CK_BYTE label[] = "testkey3";
+	CK_ATTRIBUTE pub_attrs[] = {
+		{ CKA_PUBLIC_EXPONENT, NULL, exp_size },
+		{ CKA_CLASS, &class, sizeof(class) }
+	};
+	CK_ATTRIBUTE cert_id_attr[] = {
+		//{ CKA_ID, id, sizeof(id) },
+		{ CKA_LABEL, label, strlen(label) },
+	};
+	CK_OBJECT_HANDLE obj_list[20];
+	int ver, n_size, e_size, i;
+	unsigned int ihash_len;
+	CK_RV rc;
+
+	printf("doing kent stuff\n");
+
+	rc = funcs->C_FindObjectsInit( session, cert_id_attr, 1 );
+	if (rc != CKR_OK) {
+		show_error("   C_FindObjectsInit #1", rc );
+		rc = FALSE;
+		goto done;
+	}
+
+	printf("find  session \n");
+	rc = funcs->C_FindObjects( session, obj_list, 20, &objcount );
+	if (rc != CKR_OK) {
+		show_error("   C_FindObjects #1", rc );
+		rc = FALSE;
+		goto done;
+	}
+
+	printf("find final  session \n");
+	rc = funcs->C_FindObjectsFinal( session );
+	if (rc != CKR_OK) {
+		show_error("   C_FindObjectsFinal #1", rc );
+		rc = FALSE;
+		goto done;
+	}
+
+	printf("CKA_PRIVATE_KEY = %lu, CKO_PUBLIC_KEY = %lu\n", CKO_PRIVATE_KEY, CKO_PUBLIC_KEY);
+	printf("found %lu objects with CKA_LABEL = %s\n", objcount, label);
+
+	for (i = 0; i < objcount; i++) {
+		rc = funcs->C_GetAttributeValue(session, obj_list[i], pub_attrs, 2);
+		if (rc != CKR_OK) {
+			show_error("   C_GetAttributeValue", rc );
+			return rc;
+		}
+
+		printf("for obj %lu pub exp size is %lu, class is %lu\n", i,
+			pub_attrs[0].ulValueLen, class);
+		pub_exp=0;
+		exp_size=4;
+	}
+done:
+	return rc;
+}
 
 //
 //
@@ -605,11 +666,15 @@ main( int argc, char **argv )
       return rv;
    }
 
+#if 0
    rv = do_SignVerTests(session);
    if (rv != CKR_OK) {
       funcs->C_CloseAllSessions( slot_id );
       return rv;
    }
+#else
+   rv = kent(session);
+#endif
 
    rv = funcs->C_CloseAllSessions( slot_id );
    if (rv != CKR_OK) {
