@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include <linux/if_alg.h>
 
-int main()
+int
+main()
 {
 	int tfm, i;
 	char key[16];
@@ -18,19 +19,22 @@ int main()
 	};
 
 	tfm = socket(AF_ALG, SOCK_SEQPACKET, 0);
-	if (tfm == -1 || bind(tfm, (struct sockaddr*)&sa, sizeof(sa)) == -1)
-	{
-		return 1;
+	if (tfm == -1) {
+		perror("socket");
+		return -1;
+	}
+	if (bind(tfm, (struct sockaddr*)&sa, sizeof(sa)) == -1) {
+		perror("bind");
+		return -1;
 	}
 
 	memset(key, 0x34, sizeof(key));
-	if (setsockopt(tfm, SOL_ALG, ALG_SET_KEY, key, sizeof(key)) == -1)
-	{
+	if (setsockopt(tfm, SOL_ALG, ALG_SET_KEY, key, sizeof(key)) == -1) {
+		perror("setsockopt");
 		return 1;
 	}
 
-	for (i = 0; i < 1000; i++)
-	{
+	for (i = 0; i < 1000; i++) {
 		struct msghdr msg = {};
 		struct cmsghdr *cmsg;
 		struct af_alg_iv *ivm;
@@ -43,9 +47,9 @@ int main()
 		int op;
 
 		op = accept(tfm, NULL, 0);
-		if (op == -1)
-		{
-			return 1;
+		if (op == -1) {
+			perror("accept");
+			return -1;
 		}
 
 		type = ALG_OP_ENCRYPT;
@@ -77,12 +81,10 @@ int main()
 		iov.iov_len = sizeof(data);
 
 		len = sendmsg(op, &msg, 0);
-		if (len != sizeof(data))
-		{
+		if (len != sizeof(data)) {
 			return 1;
 		}
-		if (read(op, data, len) != len)
-		{
+		if (read(op, data, len) != len) {
 			return 1;
 		}
 		printf(".");
