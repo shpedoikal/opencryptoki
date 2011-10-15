@@ -587,4 +587,7 @@ int
 __des3_cbc(CK_BYTE *in_data, CK_ULONG in_data_len,
 	   CK_BYTE *out_data, CK_ULONG *out_data_len,
 	   CK_BYTE *key, ssize_t key_len, CK_BYTE *iv, int encrypt);
+
+int __md5(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash);
+int __sha1(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash);
 #endif
