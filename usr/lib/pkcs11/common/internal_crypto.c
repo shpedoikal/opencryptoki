@@ -1,3 +1,35 @@
+/*
+ * The Initial Developer of the Original Code is International
+ * Business Machines Corporation. Portions created by IBM
+ * Corporation are Copyright (C) 2011 International Business
+ * Machines Corporation. All Rights Reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the Common Public License as published by
+ * IBM Corporation; either version 1 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * Common Public License for more details.
+ *
+ * You should have received a copy of the Common Public License
+ * along with this program; if not, a copy can be viewed at
+ * http://www.opensource.org/licenses/cpl1.0.php.
+ */
+
+/*
+ * internal_crypto.c
+ *
+ * Oct 14, 2011
+ *
+ * Author: Kent Yoder <yoder1@us.ibm.com>
+ *
+ * Encryption routines for the Linux kernel's user-space crypto APIs
+ *
+ */
+
 
 #include <stdio.h>
 #include <unistd.h>
@@ -14,7 +46,7 @@
 #include "h_extern.h"
 
 
-int
+static int
 _setup_tfm(int *tfm, char *type, const char *name)
 {
 	struct sockaddr_alg sa = {
@@ -39,7 +71,7 @@ _setup_tfm(int *tfm, char *type, const char *name)
 }
 
 
-int
+static int
 __cipher_cbc(const char *name, CK_BYTE *in_data, CK_ULONG in_data_len,
 	     CK_BYTE *out_data, CK_ULONG *out_data_len,
 	     CK_BYTE *key, ssize_t key_len, CK_BYTE *iv, CK_ULONG ivlen, int encrypt)
@@ -154,7 +186,7 @@ __des3_cbc(CK_BYTE *in_data, CK_ULONG in_data_len,
 			    key_len, iv, DES3_IV_SIZE, encrypt);
 }
 
-int
+static int
 __digest(const char *name, CK_BYTE *data, CK_ULONG data_len, CK_BYTE *hash, CK_ULONG hash_len)
 {
 	int tfm, op, rc;
