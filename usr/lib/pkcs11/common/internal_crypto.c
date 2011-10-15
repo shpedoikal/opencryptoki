@@ -9,11 +9,34 @@
 #include <linux/if_alg.h>
 
 #include "pkcs11types.h"
-//#include "stdll.h"
-
 #include "defs.h"
 #include "host_defs.h"
 #include "h_extern.h"
+
+
+int
+_setup_tfm(int *tfm, char *type, const char *name)
+{
+	struct sockaddr_alg sa = {
+		.salg_family = AF_ALG,
+	};
+
+	*tfm = socket(AF_ALG, SOCK_SEQPACKET, 0);
+	if (*tfm == -1) {
+		OCK_LOG_DEBUG("%s:%s: socket(): %s", type, name, strerror(errno));
+		return -1;
+	}
+
+	strncpy(sa.salg_type, type, strlen(type)+1);
+	strncpy(sa.salg_name, name, strlen(name)+1);
+	if (bind(*tfm, (struct sockaddr*)&sa, sizeof(sa)) == -1) {
+		OCK_LOG_DEBUG("%s:%s: bind(): %s", type, name, strerror(errno));
+		close(*tfm);
+		return -1;
+	}
+
+	return 0;
+}
 
 
 int
@@ -40,16 +63,9 @@ __cipher_cbc(const char *name, CK_BYTE *in_data, CK_ULONG in_data_len,
 		return EINVAL;
 	}
 
-	tfm = socket(AF_ALG, SOCK_SEQPACKET, 0);
-	if (tfm == -1) {
-		OCK_LOG_DEBUG("socket() failed: %s", strerror(errno));
-		return -1;
-	}
-
-	strncpy(sa.salg_name, name, strlen(name)+1);
-	if (bind(tfm, (struct sockaddr*)&sa, sizeof(sa)) == -1) {
-		OCK_LOG_DEBUG("bind() failed: %s", strerror(errno));
-		rc = -1;
+	rc = _setup_tfm(&tfm, "skcipher", name);
+	if (rc) {
+		OCK_LOG_DEBUG("setup_tfm failed\n");
 		goto err;
 	}
 
@@ -98,16 +114,14 @@ __cipher_cbc(const char *name, CK_BYTE *in_data, CK_ULONG in_data_len,
 	iov.iov_base = in_data;
 	iov.iov_len = in_data_len;
 
-	//do {
-		len = sendmsg(op, &msg, 0);
-		if (len != in_data_len) {
-			OCK_LOG_DEBUG("sendmsg() failed: %s. "
-				      "Tried to send %u bytes, only sent %zd\n",
-				      strerror(errno), in_data_len, len);
-			close(op);
-			goto err;
-		}
-	//} while (total_len < in_data_len);
+	len = sendmsg(op, &msg, 0);
+	if (len != in_data_len) {
+		OCK_LOG_DEBUG("sendmsg() failed: %s. "
+				"Tried to send %u bytes, only sent %zd\n",
+				strerror(errno), in_data_len, len);
+		close(op);
+		goto err;
+	}
 
 	if (read(op, out_data, len) != in_data_len) {
 		OCK_LOG_DEBUG("read() failed: %s. Tried to read %u bytes, only read %zd",
@@ -139,34 +153,66 @@ __des3_cbc(CK_BYTE *in_data, CK_ULONG in_data_len,
 	return __cipher_cbc("cbc(des3_ede)", in_data, in_data_len, out_data, out_data_len, key,
 			    key_len, iv, DES3_IV_SIZE, encrypt);
 }
-#if 0
-int do_test(struct published_test_suite_info *t)
+
+int
+__digest(const char *name, CK_BYTE *data, CK_ULONG data_len, CK_BYTE *hash, CK_ULONG hash_len)
 {
-	int i;
+	int tfm, op, rc;
+	struct iovec iov;
+	struct msghdr msg = { 0, };
+	ssize_t len;
 
-	for (i = 0; i < t->tvcount; i++) {
-		struct aes_test_vector *tv = &t->tv[i];
-		char data[64];
-
-		PRINT("plen = %u", tv->plen);
-		PRINT("klen = %u", tv->klen);
-		PRINT("clen = %u", tv->clen);
-
-		if (aes_cbc(tv->plaintext, tv->plen, data, sizeof(data), tv->key, tv->klen,
-			    tv->iv, 1)) {
-			ERR("aes_cbc failed");
-		}
-
-		if (!memcmp(data, tv->ciphertext, tv->clen)) {
-			PRINT("Success.");
-		} else {
-			ERR("Ciphertext doesn't match");
-		}
-		fflush(stdout);
+	rc = _setup_tfm(&tfm, "hash", name);
+	if (rc) {
+		OCK_LOG_DEBUG("setup_tfm failed\n");
+		return rc;
 	}
 
-	printf("\n");
-	return 0;
+	op = accept(tfm, NULL, 0);
+	if (op == -1) {
+		OCK_LOG_DEBUG("accept() failed: %s", strerror(errno));
+		rc = -1;
+		goto err;
+	}
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	iov.iov_base = data;
+	iov.iov_len = data_len;
+
+	len = sendmsg(op, &msg, 0);
+	if (len != data_len) {
+		OCK_LOG_DEBUG("sendmsg() failed: %s. "
+			      "Tried to send %u bytes, only sent %zd\n",
+			      strerror(errno), data_len, len);
+		close(op);
+		rc = -1;
+		goto err;
+	}
+
+	if ((len = read(op, hash, hash_len)) != hash_len) {
+		OCK_LOG_DEBUG("read() failed: %s. Tried to read %u bytes, only read %zd",
+				strerror(errno), hash_len, len);
+		close(op);
+		rc = -1;
+		goto err;
+	}
+err:
+	close(tfm);
+	return rc;
 }
-#endif
+
+int
+__md5(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash)
+{
+	return __digest("md5", in_data, in_data_len, hash, MD5_HASH_SIZE);
+}
+
+int
+__sha1(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash)
+{
+	return __digest("sha1", in_data, in_data_len, hash, SHA1_HASH_SIZE);
+}
+
 
