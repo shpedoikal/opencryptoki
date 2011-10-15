@@ -569,11 +569,10 @@ typedef struct _DL_NODE
   #pragma pack() 
 #endif
 
-/* internal crypto API stuff */
+/* internal crypto API */
 #define OP_ENCRYPT	1
 #define OP_DECRYPT	0
 
-/* XXX move */
 #define AES_IV_SIZE	AES_BLOCK_SIZE
 #define DES3_IV_SIZE	DES_BLOCK_SIZE
 #define MAX_IV_LEN	AES_IV_SIZE
