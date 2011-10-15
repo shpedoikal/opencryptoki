@@ -80,12 +80,6 @@ AC_ARG_ENABLE([ccatok],
 	[],
 	[enable_ccatok=check])
 
-dnl --- Linux kernel crypto api token
-AC_ARG_ENABLE([lkapitok],
-	AS_HELP_STRING([--enable-lkapitok],[build Linux Kernel user-space API token @<:@default=enabled@:>@]),
-	[],
-	[enable_lkapitok=check])
-
 dnl --- software token
 AC_ARG_ENABLE([swtok],
 	AS_HELP_STRING([--enable-swtok],[build software token @<:@default=enabled@:>@]),
@@ -528,14 +522,6 @@ else
 	enable_ccatok=no
 fi
 AM_CONDITIONAL([ENABLE_CCATOK], [test "x$enable_ccatok" = "xyes"])
-
-dnl --- enable_lkapitok
-dnl if test "x$enable_lkapitok" != "xno"; then
-dnl 	enable_lkapitok=yes
-dnl else
-dnl 	enable_lkapitok=no
-dnl fi
-dnl AM_CONDITIONAL([ENABLE_LKAPITOK], [test "x$enable_lkapitok" = "xyes"])
 
 dnl --- enable_swtok
 if test "x$enable_swtok" = "xyes"; then
