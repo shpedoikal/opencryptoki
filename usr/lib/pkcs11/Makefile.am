@@ -30,9 +30,9 @@ if ENABLE_CCATOK
 CCA_DLL = cca_stdll
 endif
 
-if ENABLE_LKAPITOK
-LKAPI_DLL = lkapi_stdll
-endif
+#if ENABLE_LKAPITOK
+#LKAPI_DLL = lkapi_stdll
+#endif
 
 if ENABLE_LIBRARY
 API = api

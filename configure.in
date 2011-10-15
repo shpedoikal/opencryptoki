@@ -530,12 +530,12 @@ fi
 AM_CONDITIONAL([ENABLE_CCATOK], [test "x$enable_ccatok" = "xyes"])
 
 dnl --- enable_lkapitok
-if test "x$enable_lkapitok" != "xno"; then
-	enable_lkapitok=yes
-else
-	enable_lkapitok=no
-fi
-AM_CONDITIONAL([ENABLE_LKAPITOK], [test "x$enable_lkapitok" = "xyes"])
+dnl if test "x$enable_lkapitok" != "xno"; then
+dnl 	enable_lkapitok=yes
+dnl else
+dnl 	enable_lkapitok=no
+dnl fi
+dnl AM_CONDITIONAL([ENABLE_LKAPITOK], [test "x$enable_lkapitok" = "xyes"])
 
 dnl --- enable_swtok
 if test "x$enable_swtok" = "xyes"; then
