@@ -653,9 +653,8 @@ save_private_token_object( OBJECT *obj )
    initial_vector = (CK_BYTE *)alloca(strlen("10293847")+5);
    if (initial_vector) {	
       memcpy(initial_vector, "10293847", strlen("10293847"));
-      rc = ckm_des3_cbc_encrypt( cleartxt,    padded_len,
-				 ciphertxt,  &ciphertxt_len,
-			         initial_vector, des3_key );
+      rc = __des3_cbc(cleartxt, padded_len, ciphertxt, &ciphertxt_len, des3_key, sizeof(des3_key),
+		      initial_vector, OP_ENCRYPT);
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
@@ -908,9 +907,8 @@ restore_private_token_object( CK_BYTE  * data,
    initial_vector = (CK_BYTE *)alloca(strlen("10293847")+5);
    if (initial_vector) {
       memcpy(initial_vector, "10293847", strlen("10293847"));
-      rc = ckm_des3_cbc_decrypt( ciphertxt,    len,
-                                 cleartxt,  &len,
-                                 initial_vector, des3_key );
+      rc = __des3_cbc(ciphertxt, len, cleartxt, &len, des3_key, sizeof(des3_key), initial_vector,
+		      OP_DECRYPT);
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
@@ -1035,9 +1033,8 @@ load_masterkey_so( void )
    initial_vector = (CK_BYTE *)alloca(strlen("12345678")+5);
    if (initial_vector) {
       memcpy(initial_vector, "12345678", strlen("12345678"));
-      rc = ckm_des3_cbc_decrypt( cipher,  cipher_len,
-                                 clear,  &clear_len,
-                                 initial_vector, des3_key );
+      rc = __des3_cbc(cipher, cipher_len, clear, &clear_len, des3_key, sizeof(des3_key),
+		      initial_vector, OP_DECRYPT);
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
@@ -1135,9 +1132,8 @@ load_masterkey_user( void )
    initial_vector = (CK_BYTE *)alloca(strlen("12345678")+5);
    if (initial_vector) {
       memcpy(initial_vector, "12345678", strlen("12345678"));
-      rc = ckm_des3_cbc_decrypt( cipher,  cipher_len,
-                                 clear,  &clear_len,
-                                 initial_vector, des3_key );
+      rc = __des3_cbc(cipher, cipher_len, clear, &clear_len, des3_key, sizeof(des3_key),
+		      initial_vector, OP_DECRYPT);
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
@@ -1223,9 +1219,8 @@ save_masterkey_so( void )
    initial_vector = (CK_BYTE *)alloca(strlen("12345678"));
    if (initial_vector) {
       memcpy(initial_vector, "12345678", strlen("12345678"));
-      rc = ckm_des3_cbc_encrypt( cleartxt,    padded_len,
-                                 ciphertxt,  &ciphertxt_len,
-                                 initial_vector, des3_key );
+      rc = __des3_cbc(cleartxt, padded_len, ciphertxt,  &ciphertxt_len, des3_key, sizeof(des3_key),
+		      initial_vector, OP_ENCRYPT );
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
@@ -1309,9 +1304,8 @@ save_masterkey_user( void )
    initial_vector = (CK_BYTE *)alloca(strlen("12345678")+5);
    if (initial_vector) {
       memcpy(initial_vector, "12345678", strlen("12345678"));
-      rc = ckm_des3_cbc_encrypt( cleartxt,    padded_len,
-                                 ciphertxt,  &ciphertxt_len,
-                                 initial_vector, des3_key );
+      rc = __des3_cbc(cleartxt, padded_len, ciphertxt, &ciphertxt_len, des3_key, sizeof(des3_key),
+		      initial_vector, OP_ENCRYPT );
    } else {
       OCK_LOG_ERR(ERR_HOST_MEMORY);
       rc = CKR_HOST_MEMORY;
