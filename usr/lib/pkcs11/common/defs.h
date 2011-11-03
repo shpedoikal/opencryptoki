@@ -569,4 +569,24 @@ typedef struct _DL_NODE
   #pragma pack() 
 #endif
 
+/* internal crypto API */
+#define OP_ENCRYPT	1
+#define OP_DECRYPT	0
+
+#define AES_IV_SIZE	AES_BLOCK_SIZE
+#define DES3_IV_SIZE	DES_BLOCK_SIZE
+#define MAX_IV_LEN	AES_IV_SIZE
+
+int
+__aes_cbc(CK_BYTE *in_data, CK_ULONG in_data_len,
+	  CK_BYTE *out_data, CK_ULONG *out_data_len,
+	  CK_BYTE *key, ssize_t key_len, CK_BYTE *iv, int encrypt);
+
+int
+__des3_cbc(CK_BYTE *in_data, CK_ULONG in_data_len,
+	   CK_BYTE *out_data, CK_ULONG *out_data_len,
+	   CK_BYTE *key, ssize_t key_len, CK_BYTE *iv, int encrypt);
+
+int __md5(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash);
+int __sha1(CK_BYTE *in_data, CK_ULONG in_data_len, CK_BYTE *hash);
 #endif
