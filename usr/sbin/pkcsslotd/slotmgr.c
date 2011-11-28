@@ -388,28 +388,13 @@ int main ( int argc, char *argv[], char *envp[]) {
 
    /* Get the global shared memory mutex */
 
-#if 1
-   XProcLock(&(shmp->slt_mutex));
-#else
-#ifdef PKCS64
-   msem_lock(&(shmp->slt_mutex),0);
-#else
-   pthread_mutex_lock(&(shmp->slt_mutex));
-#endif
-#endif
+   XProcLock();
 
    /* Populate the Shared Memory Region */
    if ( ! InitSharedMemory(shmp) ) {
 
-#if 1
-      XProcUnLock(&(shmp->slt_mutex));
-#else
-#ifdef PKCS64
-     msem_unlock(&(shmp->slt_mutex),0);
-#else
-     pthread_mutex_unlock(&(shmp->slt_mutex));
-#endif
-#endif
+      XProcUnLock();
+
      DetachFromSharedMemory();
      DestroySharedMemory();
      return 4;
@@ -417,15 +402,7 @@ int main ( int argc, char *argv[], char *envp[]) {
    
    /* Release the global shared memory mutex */
 
-#if 1
-      XProcUnLock(&(shmp->slt_mutex));
-#else
-#ifdef PKCS64
-   msem_unlock(&(shmp->slt_mutex),0);
-#else
-   pthread_mutex_unlock(&(shmp->slt_mutex));
-#endif
-#endif
+      XProcUnLock();
 
    #if TEST_MUTEXES
    DumpSharedMemory();
@@ -547,13 +524,6 @@ printf("Start garbage \n");
    }
 #endif
 
-
-
-   #if TEST_MUTEXES
-     /* Get the global shared memory mutex */
-     LogLog ("Grabbing the shared memory mutex");
-     pthread_mutex_lock(&(shmp->slt_mutex));
-   #endif /* TEST_MUTEXES */
 
    #if TEST_COND_VARS
 

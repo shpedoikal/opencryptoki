@@ -533,11 +533,10 @@ BOOL                   ReadSlotInfoDB ( void );
 
 
 /* Cross Process locking */
-int  XProcLock(void *);
-int  XProcUnLock(void *);
+int  XProcLock(void);
+int  XProcUnLock(void);
 
-int  CreateXProcLock(void *);
-int  DestroyXProcLock(void *);
+int  CreateXProcLock(void);
 
 
 #endif /* _SLOTMGR_H */

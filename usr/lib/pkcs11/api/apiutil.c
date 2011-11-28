@@ -319,13 +319,11 @@
 #include <apictl.h>
 #include <apiproto.h>
 
-#if SPINXPL
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/file.h>
 static int xplfd=-1;
-#endif
 
 #include <libgen.h>
 
@@ -337,71 +335,26 @@ extern  API_Proc_Struct_t  *Anchor;
 #include <stdarg.h>
 
 
-void
-set_perm(int file)
-{
-
-   // Set absolute permissions or rw-rw-r--
-   fchmod(file,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-
-}
-
-#if SYSVSEM
-#include <sys/sem.h>
-int   Shm_Sem=-1; // system 5 shared memory semaphore...
-pthread_mutex_t  semmtx = PTHREAD_MUTEX_INITIALIZER;  // local mutex for semaphore functions...
-static struct sembuf xlock_lock[2]={
-               0,0,0,
-                                    0,1,SEM_UNDO
-};
-
-static struct sembuf xlock_unlock[1] = {
-               0,-1,(IPC_NOWAIT | SEM_UNDO)
-};
-
-
-#endif
-
-
 int
-XProcLock(void *x)
+XProcLock(void)
 {
-#if PTHREADXPL
-   return pthread_mutex_lock(x);
-#elif POSIXSEM
-#error "posix semaphores need to be defined"
-#elif SYSVSEM
-#error  "LINUX Code for sysvsem xproc lock needs to be done" 
-#elif NOXPROCLOCK
-   return CKR_OK;
-#elif SPINXPL
    if (xplfd == -1 ) {
-        xplfd = open(XPL_FILE,O_CREAT|O_RDWR,S_IRWXU|S_IRWXG|S_IRWXO);
+        xplfd = open(OCK_API_LOCK_FILE,O_CREAT|O_RDWR,S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+	if (xplfd == -1)
+	    OCK_LOG_DEBUG("Failed to open lock file,%s: %s\n",
+                          OCK_API_LOCK_FILE, strerror(errno));
    }
-   flock(xplfd,LOCK_EX);
+   if (xplfd != -1)
+	flock(xplfd,LOCK_EX);
+
    return CKR_OK;
-#else
-#error  "XProcess locking needs to be defined"
-#endif
 }
 
 int 
-XProcUnLock(void *x)
+XProcUnLock(void)
 {
-#if PTHREADXPL
-   return pthread_mutex_unlock(x);
-#elif POSIXSEM
-#error "posix semaphores need to be defined"
-#elif SYSVSEM
-#error  "LINUX Code for sysvsem xproc lock needs to be done" 
-#elif NOXPROCLOCK
-   return CKR_OK;
-#elif SPINXPL
    flock(xplfd,LOCK_UN);
    return CKR_OK;
-#else
-#error  "XProcess locking needs to be definec"
-#endif
 }
 
 unsigned long
@@ -411,7 +364,6 @@ AddToSessionList(ST_SESSION_T *pSess)
 
    pthread_mutex_lock(&(Anchor->SessListMutex));
 
-   //OCK_LOG_DEBUG("AddToSessionList %x\n",pSess);
    handle = bt_node_add(&(Anchor->sess_btree), pSess);
 
    pthread_mutex_unlock(&(Anchor->SessListMutex));
@@ -539,12 +491,12 @@ get_sess_count(CK_SLOT_ID slotID, CK_ULONG *ret)
 
    shm = Anchor->SharedMemP;
 
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
 
    sinfp = &(shm->slot_info[slotID]);
    *ret = sinfp->global_sessions;
 
-   XProcUnLock(&(shm->slt_mutex));
+   XProcUnLock();
 }
 
 void
@@ -564,7 +516,7 @@ incr_sess_counts(slotID)
    // Get the slot mutex
    shm = Anchor->SharedMemP;
 
-      XProcLock(&(shm->slt_mutex));
+   XProcLock();
 
    sinfp = &(shm->slot_info[slotID]);
    sinfp->global_sessions++;
@@ -572,7 +524,7 @@ incr_sess_counts(slotID)
    procp = &shm->proc_table[Anchor->MgrProcIndex];
    procp->slot_session_count[slotID]++;
    
-   XProcUnLock(&(shm->slt_mutex)); 
+   XProcUnLock();
 
 }
 
@@ -593,7 +545,7 @@ decr_sess_counts(slotID)
    // Get the slot mutex
    shm = Anchor->SharedMemP;
 
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
 
    sinfp = &(shm->slot_info[slotID]);
    if (sinfp->global_sessions > 0){
@@ -605,7 +557,7 @@ decr_sess_counts(slotID)
       procp->slot_session_count[slotID]++;
    }
    
-   XProcUnLock(&(shm->slt_mutex));
+   XProcUnLock();
 
 
 }
@@ -633,45 +585,26 @@ sessions_exist(slotID)
    shm = Anchor->SharedMemP;
 
 #ifdef PKCS64
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
    sinfp = &(shm->slot_info[slotID]);
    if (sinfp->global_sessions == 0) {
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
       return FALSE;
    }
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
 
 #else
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
    sinfp = &(shm->slot_info[slotID]);
    if (sinfp->global_sessions == 0) {
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
       return FALSE;
    }
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
 #endif
 
    return TRUE;
 }
-
-void
-unlock_shm()
-{
-   Slot_Mgr_Shr_t  *shm;
-   shm = Anchor->SharedMemP;
-
-   XProcUnLock(&(shm->slt_mutex));
-}
-
-void
-lock_shm()
-{
-   Slot_Mgr_Shr_t  *shm;
-   shm = Anchor->SharedMemP;
-   XProcLock(&(shm->slt_mutex));
-}
-
-
 
 // Terminates all sessions associated with a given process
 // this cleans up any lingering sessions with the process
@@ -724,14 +657,14 @@ API_Register()
 
    uint16         indx;
 
-   // Grab the Shared Memory MUTEX to prevent other updates to the
+   // Grab the Shared Memory lock to prevent other updates to the
    // SHM Process 
    // The registration is done to allow for future handling of
    // the Slot Event List.  Which is maintained by the Slotd.
    
    shm = Anchor->SharedMemP;
 
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
 
    procp = shm->proc_table;
    for (indx=0;indx< NUMBER_PROCESSES_ALLOWED; indx++,procp++){
@@ -742,7 +675,7 @@ API_Register()
          // un-registering, and restarting with exactly the same PID 
          // before the slot manager garbage collection can performed.
          // To eliminate the race condition between garbage collection
-         // the shm-slt_mutex will protect us.
+         // the lock should protect us.
          // This should be a VERY rare (if ever) occurance, given the
          // way AIX deals with re-allocation of PID;s, however if this
          // ever gets ported over to another platform we want to deal
@@ -763,7 +696,7 @@ API_Register()
 
    // If we did not find a free entry then we fail the routine
    if ( (reuse == -1) && (free == -1 ) ){
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
       return FALSE;
    }
 
@@ -798,7 +731,7 @@ API_Register()
    //Does initializing them in the slotd allow for them to not be 
    //initialized in the application.
 
-      XProcUnLock(&(shm->slt_mutex));
+      XProcUnLock();
 
    return TRUE;
 }
@@ -820,14 +753,14 @@ API_UnRegister()
    Slot_Mgr_Proc_t  *procp;
 #endif
 
-   // Grab the Shared Memory MUTEX to prevent other updates to the
+   // Grab the Shared Memory lock to prevent other updates to the
    // SHM Process 
    // The registration is done to allow for future handling of
    // the Slot Event List.  Which is maintained by the Slotd.
    
    shm = Anchor->SharedMemP;
 
-   XProcLock(&(shm->slt_mutex));
+   XProcLock();
 
    procp = &(shm->proc_table[Anchor->MgrProcIndex]);
 
@@ -843,7 +776,7 @@ API_UnRegister()
    //Does initializing them in the slotd allow for them to not be 
    //initialized in the application.
 
-   XProcUnLock(&(shm->slt_mutex));
+   XProcUnLock();
 
 }
 
