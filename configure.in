@@ -658,6 +658,8 @@ AC_CONFIG_FILES([Makefile usr/Makefile \
 	  testcases/common/Makefile \
 	  testcases/driver/Makefile \
 	  testcases/init_tok/Makefile \
+	  testcases/java/opencryptoki_java_test.sh \
+	  testcases/java/Makefile \
 	  testcases/mkobj/Makefile \
 	  testcases/oc-digest/Makefile \
 	  testcases/rsa_keygen/Makefile \
@@ -677,7 +679,7 @@ AC_CONFIG_FILES([Makefile usr/Makefile \
 	  man/man7/Makefile \
 	  man/man7/opencryptoki.7 \
 	  man/man8/Makefile \
-	  man/man8/pkcsslotd.8])
+	  man/man8/pkcsslotd.8], [chmod +x testcases/java/opencryptoki_java_test.sh])
 AC_OUTPUT
 
 echo "Enabled features:"
