@@ -56,7 +56,7 @@ TOKTYPE=""
 #
 # v2.11/login MUST come last if it appears in this list
 #
-OCK_TESTS="oc-digest/digest_tests.sh driver/*tests"
+OCK_TESTS="oc-digest/digest_tests.sh driver/*tests java/opencryptoki_java_test.sh"
 OCK_BENCHS="driver/*bench"
 
 usage()
