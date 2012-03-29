@@ -404,6 +404,11 @@ CK_RV ST_Initialize( void **FunctionList,
 	MY_CreateMutex( &sess_list_mutex );
 	MY_CreateMutex( &login_mutex     );
 
+	if (CreateXProcLock() != CKR_OK) {
+		OCK_LOG_ERR(ERR_PROCESS_LOCK);
+		goto done;
+	}
+
 	init_data_store((char *)PK_DIR);
 
 
