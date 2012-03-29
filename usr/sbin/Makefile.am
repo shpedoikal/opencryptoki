@@ -4,3 +4,6 @@ PKCSCCA_MIGRATE_DIR = pkcscca_migrate
 endif
 
 SUBDIRS = pkcsslotd pkcs11_startup pkcs_slot pkcsconf $(PKCSCCA_MIGRATE_DIR)
+
+install-data-hook:
+	$(MKDIR_P) $(DESTDIR)$(localstatedir)/lock
