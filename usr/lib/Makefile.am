@@ -8,5 +8,7 @@ install-data-hook:
 		$(DESTDIR)/etc/ld.so.conf.d/opencryptoki-$(target_cpu).conf
 	echo "**** Remember you must run ldconfig before using the above settings ****"
 
+	$(MKDIR_P) $(DESTDIR)$(localstatedir)/lock
+
 uninstall-hook:
 	rm -f $(DESTDIR)/etc/ld.so.conf.d/opencryptoki-$(target_cpu).conf
