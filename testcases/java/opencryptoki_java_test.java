@@ -154,13 +154,7 @@ public class opencryptoki_java_test
 		} else {
 			System.out.println("Verified the " + hash_alg + " object using P11: Success!");
 		}
-		
-
-		
 	}
-		
-		
-
 
 	public static void sign_verify(String   hash,
 			int      key_len,
@@ -328,7 +322,7 @@ public class opencryptoki_java_test
 			test.sign_verify("MD5withRSA", 1024, data, "IBMPKCS11Impl-Sample");
 			test.sign_verify("MD5withRSA", 2048, data, "IBMPKCS11Impl-Sample");
 			test.sign_verify("MD5withRSA", 4096, data, "IBMPKCS11Impl-Sample");
-		} else if (argv[0].equals("CKM_SHA256_PKCS")) {
+		} else if (argv[0].equals("CKM_SHA256")) {
 			test.hash_data("SHA-256", data, "IBMPKCS11Impl-Sample");			
 		} else {
 			System.out.println("Unknown mechanism: " + argv[0]);
