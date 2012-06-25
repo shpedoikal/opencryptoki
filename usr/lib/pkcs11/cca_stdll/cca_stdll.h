@@ -26,6 +26,14 @@
 #define CCA_OCV_SIZE                    18
 #define CCA_SUCCESS                     0
 #define CCA_PKB_E_OFFSET                18
+
+/*Offsets for RSA-PUBL key token format */
+#define CCA_PUB_PKB_MOD_FIELD_SIZE      2
+#define CCA_PUB_PKB_E_SIZE              4
+#define CCA_PUB_PKB_MOD                 8
+#define CCA_PUB_PKB_E_OFFSET            8 /* This value + Modulus size */
+
+/* Offsets for RSA-CRT key token format */
 #define CCA_PKB_E_SIZE                  2
 #define CCA_PKB_E_SIZE_OFFSET           4
 
