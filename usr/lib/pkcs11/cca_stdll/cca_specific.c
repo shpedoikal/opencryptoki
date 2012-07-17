@@ -564,6 +564,223 @@ token_create_priv_key(TEMPLATE *priv_tmpl, CK_ULONG tok_len, CK_BYTE *tok)
 #endif
 
 CK_RV
+token_specific_rsa_import_keypair(TEMPLATE *priv_tmpl)
+{
+	long return_code, reason_code, rule_array_count;
+	unsigned char rule_array[CCA_RULE_ARRAY_SIZE] = { 0, };
+
+	long key_value_structure_length, offset;
+	long public_key_name_length, key_token_length,
+	     target_key_token_length, regeneration_data_length;
+
+	unsigned char key_value_structure[CCA_KEY_VALUE_STRUCT_SIZE] = { 0, };
+	unsigned char public_key_name[CCA_PRIVATE_KEY_NAME_SIZE] = { 0, };
+	unsigned char key_token[CCA_KEY_TOKEN_SIZE] = { 0, };
+	unsigned char target_key_token[CCA_KEY_TOKEN_SIZE] = { 0, };
+	unsigned char transport_key_identifier[CCA_DES_KEY_TOKEN_SIZE] = { 0, };
+
+	uint16_t size_of_e, size_of_d;
+	uint16_t mod_bits, mod_bytes, bytes;
+	CK_ATTRIBUTE *opaque_key = NULL, *pub_exp = NULL, *mod = NULL,
+		     *priv_exp = NULL, *attr = NULL, *p_prime=NULL,
+		     *q_prime=NULL, *dmp1=NULL, *dmq1=NULL, *iqmp=NULL;
+	CK_RV rv;
+
+	/* Look for parameters to set key in the CRT format */
+	if (!template_attribute_find(priv_tmpl, CKA_PRIME_1, &p_prime)) {
+		DBG("CRT attribute CKA_PRIME_1 not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_PRIME_2, &q_prime)) {
+		DBG("CRT attribute CKA_PRIME_2 not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_EXPONENT_1, &dmp1)) {
+		DBG("CRT attribute CKA_EXPONENT_1 not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_EXPONENT_2, &dmq1)) {
+		DBG("CRT attribute CKA_EXPONENT_2 not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_COEFFICIENT, &iqmp)) {
+		DBG("CRT CKA_COEFFICIENT attribute not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_PUBLIC_EXPONENT, &pub_exp)) {
+		DBG("CKA_PUBLIC_EXPONENT attribute not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	if (!template_attribute_find(priv_tmpl, CKA_MODULUS, &mod)) {
+		DBG("Modulus attribute not found. rv=0x%lx", rv);
+		return CKR_TEMPLATE_INCOMPLETE;
+	}
+
+	mod_bits = mod->ulValueLen * 8;
+
+	/* Build key token for RSA-PRIV format */
+	key_value_structure_length = CCA_KEY_VALUE_STRUCT_SIZE;
+
+	/* Fields according to Table 9. PKA_Key_Token_Build key-values-structure */
+	/* Field #1 - Length of modulus in bits */
+	memcpy(&key_value_structure[0], &mod_bits, sizeof(uint16_t));
+
+	/* Field #2 - Length of modulus field in bytes */
+	mod_bytes = mod->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_E_SIZE],
+	       &mod_bytes, sizeof(uint16_t));
+
+	/* Field #3 - Length of public exponent field in bytes */
+	size_of_e = (size_t)pub_exp->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_E_SIZE_OFFSET],
+	       &size_of_e, sizeof(uint16_t));
+
+	/* Field #4 - Reserved, binary zero, two bytes */
+
+
+	/* Field #5 - Length of prime P */
+	bytes = p_prime->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_P_LENGTH],
+	       &bytes, sizeof(uint16_t));
+
+	/* Field #6 - Length of prime Q */
+	bytes = q_prime->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_Q_LENGTH],
+	       &bytes, sizeof(uint16_t));
+
+	/* Field #7 - Length of dp in bytes */
+	bytes = dmp1->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_DP_LENGTH],
+	       &bytes, sizeof(uint16_t));
+
+	/* Field #8 - Length of dq in bytes */
+	bytes = dmq1->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_DQ_LENGTH],
+	       &bytes, sizeof(uint16_t));
+
+	/* Field #9 - Length of U in bytes */
+	bytes = iqmp->ulValueLen;
+	memcpy(&key_value_structure[CCA_PKB_U_LENGTH],
+	       &bytes, sizeof(uint16_t));
+
+	/* Field #10 - Modulus */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET],
+	       mod->pValue, mod_bytes);
+
+	offset = mod_bytes;
+
+	/* Field #11 - Public Exponent */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       pub_exp->pValue, pub_exp->ulValueLen);
+
+	offset += pub_exp->ulValueLen;
+
+	/* Field #12 - Prime numer, p */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       p_prime->pValue, p_prime->ulValueLen);
+
+	offset += p_prime->ulValueLen;
+
+	/* Field #13 - Prime numer, q */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       q_prime->pValue, q_prime->ulValueLen);
+
+	offset += q_prime->ulValueLen;
+
+	/* Field #14 - dp = dmod(p-1) */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       dmp1->pValue, dmp1->ulValueLen);
+
+	offset += dmp1->ulValueLen;
+
+	/* Field #15 - dq = dmod(q-1) */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       dmq1->pValue, dmq1->ulValueLen);
+
+
+	offset += dmq1->ulValueLen;
+
+	/* Field #16 - U = q^1mod(p)  */
+	memcpy(&key_value_structure[CCA_PKB_MODULUS_OFFSET + offset],
+	       iqmp->pValue, iqmp->ulValueLen);
+
+	rule_array_count = 1;
+	memcpy(rule_array, "RSA-CRT ", (size_t)(CCA_KEYWORD_SIZE * 1));
+
+	public_key_name_length = 0;
+
+	key_token_length = CCA_KEY_TOKEN_SIZE;
+
+        CSNDPKB(&return_code,
+                &reason_code,
+                NULL,
+                NULL,
+                &rule_array_count,
+                rule_array,
+                &key_value_structure_length,
+                key_value_structure,
+                &public_key_name_length,
+                public_key_name,
+                0,
+                NULL,
+                0,
+                NULL,
+                0,
+                NULL,
+                0,
+                NULL,
+                0,
+                NULL,
+                &key_token_length,
+                key_token);
+
+	if (return_code != CCA_SUCCESS) {
+                CCADBG("CSNDPKB (RSA KEY TOKEN BUILD RSA CRT)", return_code, reason_code);
+                return CKR_FUNCTION_FAILED;
+        }
+
+	rule_array_count = 0;
+	memcpy(rule_array, "        ", (size_t)(CCA_KEYWORD_SIZE * 1));
+
+	target_key_token_length = CCA_KEY_TOKEN_SIZE;
+
+	key_token_length = CCA_KEY_TOKEN_SIZE;
+
+	CSNDPKI(&return_code,
+		&reason_code,
+		NULL,
+		NULL,
+		&rule_array_count,
+		rule_array,
+		&key_token_length,
+		key_token,
+		transport_key_identifier,
+		&target_key_token_length,
+		target_key_token);
+
+	if (return_code != CCA_SUCCESS) {
+                CCADBG("CSNDPKI (RSA KEY TOKEN IMPORT)", return_code, reason_code);
+                return CKR_FUNCTION_FAILED;
+        }
+
+	/* Add the opaque key object to the template */
+	if ((rv = build_attribute(CKA_IBM_OPAQUE, target_key_token, target_key_token_length, 
+				  &opaque_key))) {
+		DBG("build_attribute for opaque key failed. rv=0x%lx", rv);
+		return rv;
+	}
+	template_update_attribute(priv_tmpl, opaque_key);
+
+	return CKR_OK;
+}
+
+CK_RV
 token_specific_rsa_import_pubkey(TEMPLATE *publ_tmpl)
 {
 	long return_code, reason_code, rule_array_count;
@@ -613,12 +830,12 @@ token_specific_rsa_import_pubkey(TEMPLATE *publ_tmpl)
 	/* Field #2 - Length of modulus field in bytes */
 	mod_bytes = pub_mod->ulValueLen;
 	memcpy(&key_value_structure[CCA_PUB_PKB_MOD_FIELD_SIZE],
-	       &mod_bytes, (size_t)pub_mod->ulValueLen);
+	       &mod_bytes, sizeof(uint16_t));
 
 	/* Field #3 - Length of public exponent field in bytes */
 	size_of_e = (uint16_t)pub_exp->ulValueLen;
 	memcpy(&key_value_structure[CCA_PUB_PKB_E_SIZE],
-	       &size_of_e, (size_t)CCA_PKB_E_SIZE);
+	       &size_of_e, sizeof(uint16_t));
 
 	/* Field #4 - Private exponent length in bytes. Zero, no priv key */
 
@@ -662,6 +879,11 @@ token_specific_rsa_import_pubkey(TEMPLATE *publ_tmpl)
                 &key_token_length,
                 key_token);
 
+	if (return_code != CCA_SUCCESS) {
+                CCADBG("CSNDPKB (RSA KEY TOKEN BUILD RSA-PUBL)", return_code, reason_code);
+                return CKR_FUNCTION_FAILED;
+        }
+
 	/* Add the opaque key object to the template */
 	if ((rv = build_attribute(CKA_IBM_OPAQUE, key_token, key_token_length, 
 				  &opaque_key))) {
@@ -670,10 +892,7 @@ token_specific_rsa_import_pubkey(TEMPLATE *publ_tmpl)
 	}
 	template_update_attribute(publ_tmpl, opaque_key);
 
-	if (return_code != CCA_SUCCESS) {
-                CCADBG("CSNDPKB (RSA KEY TOKEN BUILD RSA-PUBL)", return_code, reason_code);
-                return CKR_FUNCTION_FAILED;
-        }
+	return CKR_OK;
 }
 
 CK_RV
@@ -852,12 +1071,17 @@ token_specific_rsa_encrypt(CK_BYTE  *in_data,
 {
 	long return_code, reason_code, rule_array_count, data_structure_length;
 	unsigned char rule_array[CCA_RULE_ARRAY_SIZE] = { 0, };
+	CK_RV rv;
 	CK_ATTRIBUTE *attr;
 
 	/* Find the secure key token */
 	if (!template_attribute_find(key_obj->template, CKA_IBM_OPAQUE, &attr)) {
-		OCK_LOG_ERR(ERR_TEMPLATE_INCOMPLETE);
-		return CKR_TEMPLATE_INCOMPLETE;
+		rv = token_specific_rsa_import_keypair(key_obj->template);
+
+		if (rv != CKR_OK) {
+			DBG("Failed to import private key pair. rv: %lu", rv);
+			return CKR_TEMPLATE_INCOMPLETE;
+		}
 	}
 
 	/* The max value allowable by CCA for out_data_len is 512, so cap the incoming value if its
@@ -958,7 +1182,18 @@ token_specific_rsa_sign(CK_BYTE  * in_data,
         long return_code, reason_code, rule_array_count;
         unsigned char rule_array[CCA_RULE_ARRAY_SIZE] = { 0, };
         long signature_bit_length;
+	CK_RV rv;
 	CK_ATTRIBUTE *attr;
+
+	/* Find / Import the secure key token */
+	if (!template_attribute_find(key_obj->template, CKA_IBM_OPAQUE, &attr)) {
+		rv = token_specific_rsa_import_keypair(key_obj->template);
+
+		if (rv != CKR_OK) {
+			DBG("Failed to import key pair. rv: %lu", rv);
+			return rv;
+		}
+	}
 
 	/* Find the secure key token */
 	if (!template_attribute_find(key_obj->template, CKA_IBM_OPAQUE, &attr)) {

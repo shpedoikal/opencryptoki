@@ -17,6 +17,7 @@
 
 #define CCA_PRIVATE_KEY_NAME_SIZE       64
 #define CCA_REGENERATION_DATA_SIZE      64
+#define CCA_DES_KEY_TOKEN_SIZE          64
 #define CCA_KEY_TOKEN_SIZE              2500
 #define CCA_KEY_VALUE_STRUCT_SIZE       2500
 #define CCA_RULE_ARRAY_SIZE             256
@@ -30,12 +31,20 @@
 /*Offsets for RSA-PUBL key token format */
 #define CCA_PUB_PKB_MOD_FIELD_SIZE      2
 #define CCA_PUB_PKB_E_SIZE              4
+#define CCA_PRV_PKB_E_SIZE              6
 #define CCA_PUB_PKB_MOD                 8
 #define CCA_PUB_PKB_E_OFFSET            8 /* This value + Modulus size */
 
 /* Offsets for RSA-CRT key token format */
 #define CCA_PKB_E_SIZE                  2
 #define CCA_PKB_E_SIZE_OFFSET           4
+#define CCA_PKB_P_LENGTH		8
+#define CCA_PKB_Q_LENGTH		10
+#define CCA_PKB_DP_LENGTH		12
+#define CCA_PKB_DQ_LENGTH		14
+#define CCA_PKB_U_LENGTH		16
+#define CCA_PKB_MODULUS_OFFSET		18
+
 
 /* Elliptic Curve constants */
 /* CCA spec: page 94 */
