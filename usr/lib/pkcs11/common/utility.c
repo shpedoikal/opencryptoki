@@ -1154,21 +1154,10 @@ compute_sha( CK_BYTE  * data,
              CK_ULONG   len,
              CK_BYTE  * hash )
 {
-   // XXX KEY
-   DIGEST_CONTEXT	ctx;
-   CK_ULONG     	hash_len = SHA1_HASH_SIZE;
-   CK_RV		rv;
+   int rc = __sha1(data, len, hash);
 
-   memset( &ctx, 0x0, sizeof(ctx) );
-
-   ckm_sha1_init( &ctx );
-   if( ctx.context == NULL )
-	   return CKR_HOST_MEMORY;
-   
-   if( (rv = ckm_sha1_update( &ctx, data,  len )) != CKR_OK)
-	   return rv;
-   
-   return ckm_sha1_final( &ctx, hash, &hash_len );
+   OCK_LOG_DEBUG("%s failed\n", __FUNCTION__);
+   return rc;
 }
 
 
@@ -1177,15 +1166,9 @@ compute_md5( CK_BYTE  * data,
              CK_ULONG   len,
              CK_BYTE  * hash )
 {
-   MD5_CONTEXT ctx;
-
-   memset( &ctx, 0x0, sizeof(ctx) );
-
-   ckm_md5_init( &ctx );
-   ckm_md5_update( &ctx, data,  len );
-   ckm_md5_final(  &ctx, hash, MD5_HASH_SIZE );
-
-   return CKR_OK;
+   int rc = __md5(data, len, hash);
+   OCK_LOG_DEBUG("%s failed\n", __FUNCTION__);
+   return rc;
 }
 
 

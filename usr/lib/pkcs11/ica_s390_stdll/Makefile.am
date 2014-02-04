@@ -20,7 +20,7 @@ opencryptoki_stdll_libpkcs11_ica_la_SOURCES = ../common/asn1.c	\
 ../common/obj_mgr.c ../common/object.c ../common/sess_mgr.c	\
 ../common/sign_mgr.c ../common/template.c ../common/p11util.c	\
 ../common/utility.c ../common/verify_mgr.c ../common/log.c	\
-../common/mech_list.c ica_specific.c
+../common/mech_list.c ../internal_crypto.c ica_specific.c
 
 INCLUDES = $(ICA_INC_DIRS) -I. -I../../../include/pkcs11/stdll	\
 -I../../../include/pkcs11 -I../common -I../../../ica/inc	\
