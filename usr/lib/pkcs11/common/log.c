@@ -299,6 +299,10 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/file.h>
+#ifdef OS_SunOS
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#endif
 #include <pthread.h>
 #include <dlfcn.h>
 

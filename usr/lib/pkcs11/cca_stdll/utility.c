@@ -23,6 +23,10 @@
 #include <pwd.h>
 #include <grp.h>
 
+#ifdef OS_SunOS
+#include <sys/fcntl.h>
+#endif
+
 #include "cca_stdll.h"
 
 #include "pkcs11types.h"
