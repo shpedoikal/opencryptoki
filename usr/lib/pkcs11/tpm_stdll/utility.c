@@ -36,6 +36,9 @@
 #include <pwd.h>
 #include <grp.h>
 
+#ifdef OS_SunOS
+#include <sys/fcntl.h>
+#endif
 
 #include "pkcs11/pkcs11types.h"
 #include <pkcs11/stdll.h>

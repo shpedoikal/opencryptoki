@@ -302,6 +302,9 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+#ifdef OS_SunOS
+#include <sys/fcntl.h>
+#endif
 
 
 #include "pkcs11types.h"
